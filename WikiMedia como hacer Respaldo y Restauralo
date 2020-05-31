@@ -1,0 +1,72 @@
+Backup/Restore Mediawiki
+
+wgDBname = "wikisopmid"
+wgDBuser = "rootdb"
+wgDBpassword =  "r00tme"
+
+
+== Backup mediawiki ==
+
+Stop apache
+
+    /etc/init.d/apache2 stop 
+
+dump sql database
+
+    mysqldump -u root -p wikisopmid > wikisopmid.dump 
+
+Archive the mediawiki files (and anything else you might want.... like /etc/httpd/conf/httpd.conf)
+
+    tar czvf mediawiki.tar.gz /var/lib/mediawiki /usr/share/mediawiki/ /etc/mediawiki /root/wikidb.dump 
+
+
+== Restore mediawiki on new system ==
+ 
+
+install mediawiki
+
+    apt-get install mediawiki 
+
+this will ensure all dependencies are accounted for
+
+Copiar los archivos respaldados en el anterios servidor de mediawiki
+    
+    scp mediawiki.tar.gz ip_del_nuevo_servidor:/root/
+
+extract tar file
+
+    tar zxvf mediawiki.tar.gz 
+
+start mysqld
+
+    /etc/init.d/mysqld start 
+
+Create database as defined in /var/lib/mediawiki/config/LocalSettings.php
+
+    grep wgDBname /var/lib/mediawiki/config/LocalSettings.php 
+    mysql -u root -p -e "create database wikisopmid" 
+
+import database
+
+    mysql -u root -p wikisopmid < wikisopmid.dump 
+
+Create database user as defined in /var/lib/mediawiki/config/LocalSettings.php
+
+    grep wgDBuser /var/lib/mediawiki/config/LocalSettings.php
+
+with password:
+
+    grep wgDBpassword /var/lib/mediawiki/config/LocalSettings.php
+    mysql -u root -p
+    create user wgDBuser identified by 'wgDBpassword'; 
+
+give user permissions to wikidb
+
+    mysql -u root -p
+    grant all on wgDBname.* to 'wgDBuser'@'localhost' identified by 'wgDBpassword'; 
+    flush privileges;
+
+start apache
+
+    /etc/init.d/httpd start
+
